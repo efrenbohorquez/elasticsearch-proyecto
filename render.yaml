@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: elasticsearch-proyecto
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: ELASTIC_CLOUD_ID
+        sync: false
+      - key: ELASTIC_API_KEY
+        sync: false
+      - key: INDEX_NAME
+        value: index_cuentos
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PYTHON_VERSION
+        value: 3.11.9
