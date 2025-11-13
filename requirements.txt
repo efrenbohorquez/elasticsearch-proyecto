@@ -1,0 +1,15 @@
+# Elasticsearch y dependencias principales
+elasticsearch==8.11.0
+
+# Variables de entorno
+python-dotenv==1.0.0
+
+# Utilidades
+requests==2.31.0
+
+# Logging y formato
+colorama==0.4.6
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0

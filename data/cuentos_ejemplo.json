@@ -1,0 +1,32 @@
+[
+    {
+        "autor": "Isabel Allende",
+        "tipo_documento": "fantastico",
+        "texto": "En la hacienda del fin del mundo, donde las montañas se encuentran con el cielo, existía una biblioteca mágica que guardaba todos los secretos del universo. Solo los elegidos podían acceder a sus conocimientos ancestrales.",
+        "fecha": "2024-01-15"
+    },
+    {
+        "autor": "Gabriel García",
+        "tipo_documento": "infantil",
+        "texto": "El pequeño ratón Pérez construyó su casa en el hueco de un árbol. Cada mañana salía a recolectar semillas y frutos para el invierno, mientras cantaba canciones alegres.",
+        "fecha": "2024-02-20"
+    },
+    {
+        "autor": "Carmen Martín",
+        "tipo_documento": "terror",
+        "texto": "El espejo antiguo del ático mostraba reflejos que no debían existir. Rostros pálidos y figuras espectrales aparecían cuando la luna llena iluminaba la habitación olvidada.",
+        "fecha": "2024-03-08"
+    },
+    {
+        "autor": "Fernando Ruiz",
+        "tipo_documento": "politico",
+        "texto": "El senado del reino debatió durante horas sobre la nueva constitución. Los representantes de cada provincia presentaron sus propuestas para modernizar las leyes del estado.",
+        "fecha": "2024-04-12"
+    },
+    {
+        "autor": "Lucia Fernandez",
+        "tipo_documento": "fantastico",
+        "texto": "El unicornio plateado galopaba por los prados de cristal. Su cuerno brillaba con la luz de mil estrellas, guiando a los viajeros perdidos hacia el portal dimensional.",
+        "fecha": "2024-05-03"
+    }
+]
