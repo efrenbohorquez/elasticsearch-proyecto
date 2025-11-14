@@ -2,23 +2,34 @@
 Módulo de conexión a Elasticsearch
 Gestiona la conexión y operaciones básicas con el servidor.
 """
+from typing import Optional, Dict, Any
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConnectionError, AuthenticationException
-from src.config import Config
+from src.config import Config, ConfigError
 from src.logger import setup_logger
 
 logger = setup_logger(__name__, Config.LOG_FILE, Config.LOG_LEVEL)
 
 
 class ElasticsearchClient:
-    """Cliente para gestionar la conexión a Elasticsearch."""
+    """Cliente para gestionar la conexión a Elasticsearch con soporte de context manager."""
     
     def __init__(self):
         """Inicializa el cliente de Elasticsearch."""
-        self.client = None
-        self.is_connected = False
+        self.client: Optional[Elasticsearch] = None
+        self.is_connected: bool = False
+    
+    def __enter__(self):
+        """Permite usar el cliente con context manager."""
+        self.connect()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Cierra automáticamente la conexión al salir del contexto."""
+        self.disconnect()
+        return False
         
-    def connect(self):
+    def connect(self) -> bool:
         """
         Establece conexión con Elasticsearch.
         
@@ -28,6 +39,7 @@ class ElasticsearchClient:
         Raises:
             ConnectionError: Si no se puede conectar al servidor
             AuthenticationException: Si las credenciales son inválidas
+            ConfigError: Si la configuración es inválida
         """
         try:
             logger.info("Intentando conectar a Elasticsearch...")
@@ -35,57 +47,45 @@ class ElasticsearchClient:
             # Validar configuración
             Config.validate()
             
-            # Crear cliente
-            # Usar URL directa con https
-            url = Config.ELASTIC_CLOUD_ID
-            if not url.startswith('http'):
-                url = f"https://{url}"
+            # Obtener URL y configuración de autenticación
+            url = Config.get_elastic_url()
+            auth_config = Config.get_auth_config()
             
             logger.info(f"Conectando a: {url}")
+            logger.info(f"Método de autenticación: {'API Key' if 'api_key' in auth_config else 'Usuario/Contraseña'}")
             
-            # Determinar método de autenticación
-            if Config.ELASTIC_API_KEY:
-                logger.info("Usando autenticación con API Key")
-                self.client = Elasticsearch(
-                    url,
-                    api_key=Config.ELASTIC_API_KEY,
-                    request_timeout=30,
-                    max_retries=3,
-                    retry_on_timeout=True,
-                    verify_certs=True
-                )
-            elif Config.ELASTIC_PASSWORD:
-                logger.info(f"Usando autenticación con usuario: {Config.ELASTIC_USER}")
-                self.client = Elasticsearch(
-                    url,
-                    basic_auth=(Config.ELASTIC_USER, Config.ELASTIC_PASSWORD),
-                    request_timeout=30,
-                    max_retries=3,
-                    retry_on_timeout=True,
-                    verify_certs=True
-                )
-            else:
-                raise ValueError("Se requiere ELASTIC_API_KEY o ELASTIC_PASSWORD en .env")
+            # Crear cliente con configuración optimizada
+            self.client = Elasticsearch(
+                url,
+                **auth_config,
+                request_timeout=Config.REQUEST_TIMEOUT,
+                max_retries=Config.MAX_RETRIES,
+                retry_on_timeout=True,
+                verify_certs=True
+            )
             
             # Verificar conexión
-            if self.client.ping():
-                info = self.client.info()
-                version = info['version']['number']
-                cluster_name = info['cluster_name']
-                
-                self.is_connected = True
-                logger.info(f"✓ Conexión exitosa a Elasticsearch")
-                logger.info(f"  - Versión del servidor: {version}")
-                logger.info(f"  - Cluster: {cluster_name}")
-                
-                return True
-            else:
+            if not self.client.ping():
                 logger.error("✗ Fallo en la conexión: El servidor no responde")
                 return False
+            
+            # Obtener información del servidor
+            info = self.client.info()
+            self.is_connected = True
+            
+            logger.info("✓ Conexión exitosa a Elasticsearch")
+            logger.info(f"  - Versión del servidor: {info['version']['number']}")
+            logger.info(f"  - Cluster: {info['cluster_name']}")
+            
+            return True
                 
+        except ConfigError as e:
+            logger.error(f"✗ Error de configuración: {e}")
+            raise
+            
         except AuthenticationException as e:
             logger.error(f"✗ Error de autenticación: {e}")
-            logger.error("Verifica que tu API_KEY sea correcta")
+            logger.error("Verifica que tu API_KEY o credenciales sean correctas")
             raise
             
         except ConnectionError as e:
@@ -97,14 +97,15 @@ class ElasticsearchClient:
             logger.error(f"✗ Error inesperado al conectar: {e}")
             raise
     
-    def disconnect(self):
+    
+    def disconnect(self) -> None:
         """Cierra la conexión a Elasticsearch."""
         if self.client:
             self.client.close()
             self.is_connected = False
             logger.info("Conexión cerrada")
     
-    def get_client(self):
+    def get_client(self) -> Elasticsearch:
         """
         Obtiene el cliente de Elasticsearch.
         
@@ -118,7 +119,7 @@ class ElasticsearchClient:
             raise RuntimeError("No hay conexión a Elasticsearch. Llama a connect() primero.")
         return self.client
     
-    def check_health(self):
+    def check_health(self) -> Dict[str, Any]:
         """
         Verifica el estado de salud del cluster.
         
@@ -128,16 +129,15 @@ class ElasticsearchClient:
         try:
             client = self.get_client()
             
-            # En modo serverless, cluster.health no está disponible
-            # Usamos info() en su lugar
+            # Intentar obtener health del cluster (no disponible en serverless)
             try:
                 health = client.cluster.health()
                 logger.info(f"Estado del cluster: {health['status']}")
                 logger.info(f"Nodos: {health['number_of_nodes']}")
-                logger.info(f"Índices: {health['active_primary_shards']}")
+                logger.info(f"Índices activos: {health['active_primary_shards']}")
                 return health
             except Exception:
-                # Modo serverless - usar info alternativo
+                # Modo serverless - usar verificación alternativa
                 logger.info("Modo Serverless detectado - usando verificación alternativa")
                 info = client.info()
                 logger.info(f"Cluster UUID: {info.get('cluster_uuid', 'N/A')}")

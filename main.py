@@ -2,6 +2,7 @@
 Archivo principal del proyecto Elasticsearch
 Demuestra todas las funcionalidades implementadas.
 """
+from typing import List, Dict, Any
 from src.elasticsearch_client import ElasticsearchClient
 from src.index_manager import IndexManager
 from src.document_indexer import DocumentIndexer
@@ -11,17 +12,21 @@ from src.config import Config
 
 logger = setup_logger(__name__, Config.LOG_FILE, Config.LOG_LEVEL)
 
+# Constantes
+SEPARATOR_WIDTH = 70
+MAX_TEXT_PREVIEW = 100
 
-def print_separator(title=""):
+
+def print_separator(title: str = "") -> None:
     """Imprime un separador visual."""
-    print("\n" + "="*70)
+    print("\n" + "="*SEPARATOR_WIDTH)
     if title:
         print(f"  {title}")
-        print("="*70)
+        print("="*SEPARATOR_WIDTH)
     print()
 
 
-def print_results(results, title="Resultados"):
+def print_results(results: List[Dict[str, Any]], title: str = "Resultados") -> None:
     """
     Imprime los resultados de una consulta de forma legible.
     
@@ -30,7 +35,7 @@ def print_results(results, title="Resultados"):
         title: Título a mostrar
     """
     print(f"\n{title}:")
-    print("-" * 70)
+    print("-" * SEPARATOR_WIDTH)
     
     if not results:
         print("  No se encontraron resultados")
@@ -48,41 +53,14 @@ def print_results(results, title="Resultados"):
         print(f"   Fecha: {data.get('fecha', 'N/A')}")
         
         if 'texto' in data:
-            texto_preview = data['texto'][:100] + "..." if len(data['texto']) > 100 else data['texto']
+            texto = data['texto']
+            texto_preview = texto[:MAX_TEXT_PREVIEW] + "..." if len(texto) > MAX_TEXT_PREVIEW else texto
             print(f"   Texto: {texto_preview}")
 
 
-def demo_conexion():
-    """Demuestra la conexión a Elasticsearch."""
-    print_separator("1. CONEXIÓN A ELASTICSEARCH")
-    
-    es_client = ElasticsearchClient()
-    es_client.connect()
-    es_client.check_health()
-    
-    return es_client
-
-
-def demo_creacion_indice(es_client):
-    """Demuestra la creación del índice."""
-    print_separator("2. CREACIÓN Y CONFIGURACIÓN DEL ÍNDICE")
-    
-    index_manager = IndexManager(es_client.get_client())
-    
-    # Crear índice (eliminar si existe)
-    index_manager.create_index(delete_if_exists=True)
-    
-    return index_manager
-
-
-def demo_indexacion(es_client):
-    """Demuestra la indexación de documentos."""
-    print_separator("3. INDEXACIÓN DE DOCUMENTOS")
-    
-    indexer = DocumentIndexer(es_client.get_client())
-    
-    # Datos de ejemplo (cuentos)
-    cuentos = [
+def get_sample_data() -> List[Dict[str, Any]]:
+    """Obtiene los datos de ejemplo para indexación."""
+    return [
         {
             "autor": "Maria Gonzalez",
             "tipo_documento": "infantil",
@@ -155,6 +133,35 @@ def demo_indexacion(es_client):
             "fecha": "2024-07-22"
         }
     ]
+
+
+def demo_conexion() -> ElasticsearchClient:
+    """Demuestra la conexión a Elasticsearch."""
+    print_separator("1. CONEXIÓN A ELASTICSEARCH")
+    
+    es_client = ElasticsearchClient()
+    es_client.connect()
+    es_client.check_health()
+    
+    return es_client
+
+
+def demo_creacion_indice(es_client: ElasticsearchClient) -> IndexManager:
+    """Demuestra la creación del índice."""
+    print_separator("2. CREACIÓN Y CONFIGURACIÓN DEL ÍNDICE")
+    
+    index_manager = IndexManager(es_client.get_client())
+    index_manager.create_index(delete_if_exists=True)
+    
+    return index_manager
+
+
+def demo_indexacion(es_client: ElasticsearchClient) -> DocumentIndexer:
+    """Demuestra la indexación de documentos."""
+    print_separator("3. INDEXACIÓN DE DOCUMENTOS")
+    
+    indexer = DocumentIndexer(es_client.get_client())
+    cuentos = get_sample_data()
     
     # Indexar documentos
     success, errors = indexer.index_bulk_documents(cuentos)
@@ -165,13 +172,11 @@ def demo_indexacion(es_client):
     return indexer
 
 
-def demo_consultas(es_client, index_manager):
+def demo_consultas(es_client: ElasticsearchClient, index_manager: IndexManager) -> None:
     """Demuestra diferentes tipos de consultas."""
     print_separator("4. CONSULTAS Y BÚSQUEDAS")
     
     query = QueryBuilder(es_client.get_client())
-    
-    # Refrescar índice para que los cambios sean visibles
     index_manager.refresh_index()
     
     # A. Match All Query
@@ -211,7 +216,7 @@ def demo_consultas(es_client, index_manager):
     print("\n📋 F. AGGREGATION QUERY (Filtros y estadísticas)")
     results = query.aggregation_query("tipo_documento", "cuentos_por_tipo")
     print("\nConteo por tipo de documento:")
-    print("-" * 70)
+    print("-" * SEPARATOR_WIDTH)
     for item in results:
         print(f"  • {item['key']}: {item['count']} documentos")
     
@@ -225,14 +230,13 @@ def demo_consultas(es_client, index_manager):
     print_results(results, "Búsqueda 'Maria dragon' en autor y texto")
 
 
-def demo_informacion_indice(index_manager):
+def demo_informacion_indice(index_manager: IndexManager) -> None:
     """Muestra información del índice."""
     print_separator("5. INFORMACIÓN DEL ÍNDICE")
-    
     index_manager.get_index_info()
 
 
-def main():
+def main() -> None:
     """Función principal que ejecuta todas las demostraciones."""
     try:
         print("\n")
@@ -241,31 +245,27 @@ def main():
         print("║" + " "*10 + "Demostración completa de funcionalidades" + " "*17 + "║")
         print("╚" + "="*68 + "╝")
         
-        # 1. Conexión
-        es_client = demo_conexion()
-        
-        # 2. Creación del índice
-        index_manager = demo_creacion_indice(es_client)
-        
-        # 3. Indexación de documentos
-        demo_indexacion(es_client)
-        
-        # 4. Consultas
-        demo_consultas(es_client, index_manager)
-        
-        # 5. Información del índice
-        demo_informacion_indice(index_manager)
+        # Usar context manager para manejo automático de conexión
+        with ElasticsearchClient() as es_client:
+            # Creación del índice
+            index_manager = demo_creacion_indice(es_client)
+            
+            # Indexación de documentos
+            demo_indexacion(es_client)
+            
+            # Consultas
+            demo_consultas(es_client, index_manager)
+            
+            # Información del índice
+            demo_informacion_indice(index_manager)
         
         # Finalizar
         print_separator("✓ DEMOSTRACIÓN COMPLETADA")
         print("Todos los ejemplos se ejecutaron exitosamente.")
         print("\nPara más información, consulta el README.md")
         
-        # Cerrar conexión
-        es_client.disconnect()
-        
     except Exception as e:
-        logger.error(f"Error en la ejecución principal: {e}")
+        logger.error("Error en la ejecución principal: %s", e)
         print(f"\n❌ Error: {e}")
         print("\nVerifica tu configuración en el archivo .env")
         raise
