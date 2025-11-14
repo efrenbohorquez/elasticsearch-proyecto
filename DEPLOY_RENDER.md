@@ -6,18 +6,25 @@ Esta guía te ayudará a desplegar tu proyecto de Elasticsearch en Render.
 
 1. ✅ Cuenta en [Render](https://render.com) (gratuita)
 2. ✅ Cuenta en [GitHub](https://github.com) con tu repositorio
-3. ✅ Credenciales de Elasticsearch Cloud (API Key)
+3. ✅ Credenciales de Elasticsearch Cloud (API Key o Usuario/Contraseña)
+4. ✅ Repositorio actualizado en GitHub
 
-## 🔧 Paso 1: Preparar el Repositorio
+## 📦 Archivos de Configuración
 
 Los archivos necesarios ya están creados:
-- ✅ `render.yaml` - Configuración de Render
-- ✅ `runtime.txt` - Versión de Python
-- ✅ `requirements.txt` - Dependencias
+- ✅ `render.yaml` - Configuración de Render (Worker Service)
+- ✅ `runtime.txt` - Versión de Python (3.11.9)
+- ✅ `requirements.txt` - Dependencias del proyecto
 
-### Subir los cambios a GitHub
+## 🔧 Paso 1: Verificar Repositorio GitHub
+
+Asegúrate de que todos los cambios estén en GitHub:
 
 ```powershell
+git status
+git add .
+git commit -m "Preparar despliegue en Render"
+git push origin main
 cd C:\elasticsearch-proyecto
 git add render.yaml runtime.txt DEPLOY_RENDER.md
 git commit -m "Add Render deployment configuration"
